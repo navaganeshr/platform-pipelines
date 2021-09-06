@@ -1,0 +1,35 @@
+pipeline {
+
+   agent {
+    label 'master'
+    }
+   
+   environment {
+    CLUSTER = "observability"
+    NAMESPACE = "observability"
+    PLATFORM_TOOL = "kube-prometheus-stack"
+   }
+
+    options {
+      timeout(time: 3600, unit: 'SECONDS') 
+    }
+
+   stages {
+       stage('checkout') {
+         steps {
+            git url: 'git@github.com:navaganeshr/platform-tools.git', branch: 'main'
+          }
+        }
+       
+       stage('Deploy Chart') { 
+         steps {
+            echo "Deploying ${PLATFORM_TOOL} chart to Namespace ${NAMESPACE} in the cluster ${CLUSTER}"
+             withAWS(credentials: 'aws-dev', region: 'us-west-2') {
+                sh "aws eks update-kubeconfig --name observability"
+                sh "helm upgrade --install ${PLATFORM_TOOL} ${WORKSPACE}/${PLATFORM_TOOL} -n ${NAMESPACE} "
+              }    
+           }
+         }
+    }           
+ } 
+
